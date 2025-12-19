@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Motivation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        /* Base Body Setup */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0f172a;
+            /* Dynamic Height for Mobile Browsers */
+            min-height: 100vh;
+            min-height: 100dvh; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            color: white;
+            /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior: none;
+        }
+
+        /* Background Layer */
+        #bg-layer {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
+            z-index: 0;
+            background: 
+                linear-gradient(to bottom, rgba(10, 20, 40, 0.6), rgba(0, 0, 0, 0.8)),
+                url('https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&q=80&w=2560');
+            background-size: cover;
+            background-position: center center;
+            animation: panBackground 60s ease-in-out infinite alternate;
+            transition: transform 0.1s ease-out;
+            pointer-events: none;
+            will-change: transform; /* Performance optimization */
+        }
+
+        @keyframes panBackground {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.1) translate(-2%, -2%); }
+        }
+
+        /* Dark Glassmorphism Card */
+        .glass-card {
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+            z-index: 10;
+        }
+
+        .quote-text {
+            transition: opacity 0.5s ease-in-out;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .fade-out {
+            opacity: 0;
+        }
+
+        #progress-bar {
+            background: linear-gradient(90deg, #00ff87, #60efff);
+            box-shadow: 0 0 15px rgba(0, 255, 135, 0.5);
+            transition: width 0.05s linear;
+        }
+        
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .group:hover .fa-star {
+            animation: spin-slow 3s linear infinite;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 640px) {
+            .glass-card {
+                backdrop-filter: blur(20px) saturate(200%); /* Stronger blur on mobile */
+            }
+        }
+
+        /* Custom Scrollbar Styling */
+        #quote-text::-webkit-scrollbar {
+            width: 4px; /* Very thin on desktop */
+        }
+
+        #quote-text::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        #quote-text::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        #quote-text::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Firefox Support */
+        #quote-text {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div id="bg-layer"></div>
+
+    <!-- Main Container -->
+    <!-- Responsive Width: w-[90%] on mobile, max-w-2xl on desktop -->
+    <!-- Responsive Padding: p-6 on mobile, p-12 on desktop -->
+    <div class="glass-card rounded-3xl p-6 md:p-12 w-[95%] sm:w-full max-w-2xl relative overflow-hidden flex flex-col items-center text-center shadow-2xl">
+        
+        <!-- Header Controls Container -->
+        <div class="w-full flex justify-between items-start absolute top-0 left-0 p-4 z-30 pointer-events-none">
+            
+            <!-- Quote of the Day Button -->
+            <!-- Pointer events auto to make clickable inside the container -->
+            <button onclick="showDailyQuote()" class="pointer-events-auto bg-white/10 hover:bg-white/20 active:scale-95 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold tracking-wider flex items-center gap-1.5 border border-white/10 transition duration-300 group backdrop-blur-md">
+                <i class="fas fa-star text-yellow-300 text-xs sm:text-sm"></i>
+                <span class="text-yellow-100 hidden sm:inline">Quote of the Day</span>
+                <span class="text-yellow-100 sm:hidden">Daily</span>
+            </button>
+
+            <!-- Language Badge -->
+            <div class="pointer-events-auto bg-black/30 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold tracking-wider flex items-center gap-1.5 border border-white/10 backdrop-blur-md">
+                <i class="fas fa-globe text-emerald-300 text-xs sm:text-sm"></i>
+                <span id="lang-display" class="text-emerald-100">...</span>
+            </div>
+        </div>
+
+        <!-- Timer Bar -->
+        <div class="absolute top-0 left-0 w-full h-1 bg-white/5">
+            <div id="progress-bar" class="h-full w-0"></div>
+        </div>
+
+        <!-- Quote Content -->
+        <!-- Adjusted margins for mobile to prevent overlap with buttons -->
+        <div id="quote-container" class="mt-12 mb-8 md:mt-12 md:mb-10 min-h-[200px] flex flex-col justify-center items-center z-20 w-full">
+            <i id="quote-icon" class="fas fa-quote-left text-3xl md:text-5xl text-emerald-400 mb-4 md:mb-8 opacity-80 drop-shadow-lg transition-colors duration-500"></i>
+            
+            <!-- Responsive Font Sizes -->
+            <!-- Removed scrollbar-hide class -->
+            <h1 id="quote-text" class="quote-text text-xl sm:text-2xl md:text-4xl font-bold leading-relaxed md:leading-tight mb-4 md:mb-6 tracking-tight text-white max-h-[50vh] overflow-y-auto px-2">
+                Loading stars...
+            </h1>
+            
+            <p id="author-text" class="quote-text text-sm md:text-xl text-emerald-200 font-light italic tracking-wide opacity-90">
+                ...
+            </p>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex gap-3 md:gap-4 mt-auto z-20 w-full justify-center">
+            <!-- Copy Button -->
+            <button onclick="copyQuote()" class="p-3 md:p-4 rounded-full bg-white/5 hover:bg-white/20 active:bg-white/30 border border-white/10 transition duration-300 group backdrop-blur-sm active:scale-95" title="Copy">
+                <i class="fas fa-copy text-gray-300 group-hover:text-white text-sm md:text-lg"></i>
+            </button>
+            
+            <!-- Next Button -->
+            <button onclick="manualRefresh()" class="flex-1 max-w-xs px-6 py-3 md:px-8 md:py-4 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-[0.98] transition duration-300 font-bold shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 md:gap-3 text-sm md:text-base">
+                <i class="fas fa-sync-alt text-white"></i> 
+                <span id="next-btn-text" class="text-white truncate">Next Quote</span>
+            </button>
+        </div>
+
+        <!-- Status Message -->
+        <div id="status-msg" class="absolute bottom-2 text-[10px] sm:text-xs text-white/40 font-medium tracking-wide"></div>
+
+    </div>
+
+    <script>
+        // --- Parallax Background Logic (Mouse Only) ---
+        // On Mobile, we rely on the CSS animation for performance
+        const bgLayer = document.getElementById('bg-layer');
+        if (window.matchMedia("(min-width: 768px)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                const x = (window.innerWidth - e.pageX * 2) / 60; 
+                const y = (window.innerHeight - e.pageY * 2) / 60;
+                bgLayer.style.transform = `translateX(${x}px) translateY(${y}px)`;
+            });
+        }
+
+        // --- App Logic ---
+        let currentTimer = null;
+        let progressInterval = null;
+        let timeLeft = 10000; 
+        let isPaused = false;
+        let isDailyMode = false; 
+        
+        const userLocale = navigator.language || navigator.userLanguage || 'en';
+        const targetLang = userLocale.split('-')[0]; 
+        
+        const quoteEl = document.getElementById('quote-text');
+        const authorEl = document.getElementById('author-text');
+        const langDisplay = document.getElementById('lang-display');
+        const progressBar = document.getElementById('progress-bar');
+        const statusMsg = document.getElementById('status-msg');
+        const quoteIcon = document.getElementById('quote-icon');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            langDisplay.innerText = userLocale.toUpperCase();
+            if (targetLang !== 'en') {
+                translateText("Next Quote", targetLang).then(res => {
+                    document.getElementById('next-btn-text').innerText = res;
+                });
+            }
+            startLoop();
+        });
+
+        async function startLoop() {
+            isDailyMode = false;
+            quoteIcon.className = 'fas fa-quote-left text-3xl md:text-5xl text-emerald-400 mb-4 md:mb-8 opacity-80 drop-shadow-lg transition-colors duration-500';
+            
+            resetTimer();
+            await fetchAndDisplayQuote();
+        }
+
+        function manualRefresh() {
+            startLoop(); 
+        }
+
+        function resetTimer() {
+            clearInterval(progressInterval);
+            clearTimeout(currentTimer);
+            progressBar.style.width = '0%';
+            progressBar.classList.remove('w-full'); 
+            
+            let elapsed = 0;
+            const totalTime = 10000;
+            const step = 50; 
+
+            progressInterval = setInterval(() => {
+                if (!isPaused && !isDailyMode) {
+                    elapsed += step;
+                    const pct = (elapsed / totalTime) * 100;
+                    progressBar.style.width = `${pct}%`;
+
+                    if (elapsed >= totalTime) {
+                        clearInterval(progressInterval);
+                    }
+                }
+            }, step);
+
+            if (!isDailyMode) {
+                currentTimer = setTimeout(() => {
+                    startLoop();
+                }, totalTime);
+            }
+        }
+
+        async function showDailyQuote() {
+            isDailyMode = true;
+            clearInterval(progressInterval);
+            clearTimeout(currentTimer);
+            
+            progressBar.style.width = '100%';
+            quoteIcon.className = 'fas fa-star text-3xl md:text-5xl text-yellow-400 mb-4 md:mb-8 opacity-90 drop-shadow-lg transition-colors duration-500';
+            
+            quoteEl.classList.add('fade-out');
+            authorEl.classList.add('fade-out');
+            statusMsg.innerText = 'Fetching Daily Wisdom...';
+
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            const dailyId = (dayOfYear % 100) + 1; 
+
+            try {
+                const response = await fetch(`https://dummyjson.com/quotes/${dailyId}`);
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+                processQuoteData(data, '✨ Quote of the Day');
+            } catch (error) {
+                console.error('Daily quote failed:', error);
+                startLoop(); 
+            }
+        }
+
+        async function fetchAndDisplayQuote() {
+            quoteEl.classList.add('fade-out');
+            authorEl.classList.add('fade-out');
+
+            try {
+                const response = await fetch('https://dummyjson.com/quotes/random');
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+                processQuoteData(data, '');
+            } catch (error) {
+                console.error('Quote fetch failed:', error);
+                displayQuote('"The only way to do great work is to love what you do."', "- Steve Jobs");
+            }
+        }
+
+        async function processQuoteData(data, successMsg) {
+            let quote = data.quote;
+            let author = data.author;
+
+            if (targetLang !== 'en') {
+                statusMsg.innerText = 'Translating...';
+                try {
+                    const translatedQuote = await translateText(quote, targetLang);
+                    if (translatedQuote) quote = translatedQuote;
+                    statusMsg.innerText = successMsg;
+                } catch (err) {
+                    console.warn('Translation failed');
+                    statusMsg.innerText = 'Translation unavailable';
+                }
+            } else {
+                statusMsg.innerText = successMsg;
+            }
+
+            displayQuote(quote, author);
+        }
+
+        function displayQuote(quote, author) {
+            setTimeout(() => {
+                quoteEl.innerText = `"${quote}"`;
+                authorEl.innerText = `- ${author}`;
+                quoteEl.classList.remove('fade-out');
+                authorEl.classList.remove('fade-out');
+            }, 500);
+        }
+
+        async function translateText(text, targetLanguage) {
+            if (targetLanguage === 'en') return text;
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLanguage}&dt=t&q=${encodeURIComponent(text)}`;
+
+            const res = await fetch(url);
+            const json = await res.json();
+            
+            if (json && json[0] && json[0][0] && json[0][0][0]) {
+                return json[0].map(s => s[0]).join(''); 
+            }
+            return text;
+        }
+
+        function copyQuote() {
+            const text = `${quoteEl.innerText} ${authorEl.innerText}`;
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+            
+            const btn = document.querySelector('button[title="Copy"] i');
+            const originalClass = btn.className;
+            btn.className = 'fas fa-check text-green-400 text-sm md:text-lg';
+            setTimeout(() => btn.className = originalClass, 1500);
+        }
+
+        // Improved touch handling for pausing
+        const card = document.querySelector('.glass-card');
+        card.addEventListener('mouseenter', () => isPaused = true);
+        card.addEventListener('mouseleave', () => isPaused = false);
+        card.addEventListener('touchstart', () => isPaused = true);
+        card.addEventListener('touchend', () => isPaused = false);
+
+    </script>
+</body>
+</html>
